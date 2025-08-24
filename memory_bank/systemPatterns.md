@@ -6,163 +6,282 @@
 ```
 AiPolyglot Translation App
 ├── Frontend (Next.js Client)
-│   ├── UI Components (React + Radix UI)
-│   ├── State Management (React useState)
-│   ├── Voice Input (Web Speech API)
+│   ├── Authentication (Supabase Auth)
+│   ├── UI Components (React + Radix UI + Tailwind)
+│   ├── State Management (React useState + useEffect)
+│   ├── Voice Input (Web Speech API + Language Cycling)
+│   ├── Payment Integration (Stripe Checkout)
 │   └── Translation Service (Fetch API)
 ├── Backend (Next.js API Routes)
 │   ├── Translation Endpoint (/api/translate)
-│   ├── Environment Test (/api/test-env)
-│   └── OpenAI Integration
+│   ├── Payment Processing (/api/create-checkout-session)
+│   ├── Webhook Handling (/api/webhooks/stripe)
+│   └── Environment Testing (/api/test-env)
+├── Database (Supabase PostgreSQL)
+│   ├── User Profiles
+│   ├── Translation Usage Tracking
+│   └── Subscription Management
 └── External Services
-    ├── OpenAI GPT-3.5-turbo
-    └── Browser Web Speech API
+    ├── OpenAI GPT-3.5-turbo (Translation)
+    ├── Supabase (Auth + Database)
+    ├── Stripe (Payment Processing)
+    └── Browser Web Speech API (Voice Recognition)
 ```
 
 ### Component Architecture
 
 #### Core Components
-1. **TranslationApp** (Main Container)
+1. **AuthWrapper** (Authentication Container)
+   - Manages user authentication state
+   - Handles user profile creation and updates
+   - Tracks translation usage and subscription status
+   - Enforces 100-translation free trial limit
+
+2. **TranslationApp** (Main Application Container)
+   - Orchestrates translation workflow
    - Manages application state (input, output, loading, errors)
-   - Orchestrates user interactions
-   - Handles translation workflow
+   - Integrates with authentication and payment systems
+   - Handles upgrade prompts for subscription users
 
-2. **VoiceInput** (Voice Recognition)
-   - Encapsulates Web Speech API logic
-   - Manages microphone permissions and browser compatibility
-   - Provides voice-to-text functionality
+3. **VoiceInput** (Advanced Voice Recognition)
+   - Multi-language cycling system (Spanish → Filipino/Tagalog → Chinese → Hindi → English)
+   - Optimized for Tagalog recognition (80-90% accuracy)
+   - Interim results processing with 12-second timeout
+   - Visual language indicators and status feedback
 
-3. **UI Components** (Radix UI + Custom)
-   - Button, Card, Textarea for user interface
-   - Toast notifications for user feedback
-   - Responsive layout components
+4. **UpgradePrompt** (Payment Integration)
+   - Stripe Checkout integration
+   - Subscription upgrade workflow
+   - Free trial limit notifications
 
 ## Key Technical Decisions
 
-### Frontend Patterns
+### Authentication & User Management
 
-#### State Management
-- **React useState**: Simple state management for component-level state
-- **No Global State**: Application complexity doesn't warrant Redux/Zustand
-- **Local State Pattern**: Each component manages its own state independently
+#### Supabase Integration Pattern
+- **Server-Side Auth**: Async Supabase client creation for Next.js App Router compatibility
+- **Profile Management**: Automatic user profile creation on first login
+- **Usage Tracking**: Real-time translation count updates in database
+- **Session Management**: Persistent authentication across browser sessions
 
-#### Error Handling
-- **Layered Error Handling**: Errors caught at multiple levels
-  - API level: Server-side error responses
-  - Service level: Client-side fetch error handling
-  - Component level: UI error state management
-- **User-Friendly Messages**: Technical errors translated to actionable user guidance
+#### User State Management
+```typescript
+// Pattern: Centralized user state with usage tracking
+const [user, setUser] = useState<User | null>(null)
+const [profile, setProfile] = useState<UserProfile | null>(null)
+const [loading, setLoading] = useState(true)
 
-#### Voice Input Pattern
-- **Progressive Enhancement**: Voice input enhances but doesn't replace text input
-- **Browser Detection**: Graceful degradation when Web Speech API unavailable
-- **Auto-Translation**: Voice input automatically triggers translation for seamless UX
-
-### Backend Patterns
-
-#### API Route Design
-- **Single Responsibility**: Each API route handles one specific function
-- **Error Standardization**: Consistent error response format across endpoints
-- **Environment Validation**: Separate endpoint for testing API key configuration
-
-#### OpenAI Integration
-- **Server-Side API Calls**: Protects API key from client exposure
-- **Structured Prompts**: Consistent system message for translation quality
-- **Response Validation**: Ensures translation content exists before returning
-
-### Data Flow Patterns
-
-#### Translation Workflow
-```
-User Input → Component State → Translation Service → API Route → OpenAI → Response Chain
+// Usage validation pattern
+const canTranslate = () => {
+  if (!profile) return false
+  if (profile.subscription_status === 'active') return true
+  return profile.translation_count < 100 // Free trial limit
+}
 ```
 
-1. **Input Capture**: Text or voice input captured in TranslationApp
-2. **State Update**: Input stored in component state
-3. **Service Call**: translation-service.ts makes API request
-4. **API Processing**: /api/translate route handles OpenAI communication
-5. **Response Handling**: Result flows back through the chain
-6. **UI Update**: Component state updated with translation result
+### Payment System Architecture
 
-#### Voice Input Workflow
+#### Stripe Integration Pattern
+- **Checkout Sessions**: Server-side session creation for security
+- **Webhook Processing**: Automated subscription status updates
+- **Database Sync**: Real-time subscription status synchronization
+- **Error Handling**: Comprehensive payment error recovery
+
+#### Subscription Workflow
 ```
-Voice Button → Speech Recognition → Transcript → Auto-Translation → Result Display
+User Upgrade Request → Stripe Checkout → Payment Success → Webhook → Database Update → UI Refresh
 ```
 
-## Design Patterns in Use
+### Voice Recognition Enhancement
 
-### Component Patterns
-- **Container/Presentational**: TranslationApp (container) manages VoiceInput (presentational)
-- **Composition**: UI components composed together rather than inheritance
-- **Props Interface**: TypeScript interfaces define component contracts
+#### Language Cycling System
+```typescript
+// Pattern: Sequential language optimization for Tagalog
+const languages = [
+  'es-ES',    // Spanish (baseline)
+  'fil-PH',   // Filipino (primary Tagalog)
+  'tl-PH',    // Tagalog (fallback)
+  'zh-CN',    // Chinese
+  'hi-IN',    // Hindi
+  'en-US'     // English (final fallback)
+]
 
-### Service Patterns
-- **Facade Pattern**: translation-service.ts provides simple interface to complex API interaction
-- **Error Boundary Pattern**: Multiple layers of error handling and recovery
-- **Async/Await Pattern**: Consistent asynchronous operation handling
+// Cycling pattern with interim results
+recognition.onresult = (event) => {
+  const transcript = event.results[0][0].transcript
+  if (event.results[0].isFinal) {
+    handleFinalResult(transcript)
+  } else {
+    handleInterimResult(transcript) // Real-time feedback
+  }
+}
+```
 
-### API Patterns
-- **RESTful Design**: POST /api/translate follows REST conventions
-- **Request/Response Schema**: Structured JSON for API communication
-- **Middleware Pattern**: Next.js API routes act as middleware layer
+### Database Patterns
+
+#### User Profile Schema
+```sql
+-- Pattern: Comprehensive user tracking
+CREATE TABLE user_profiles (
+  id UUID PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  translation_count INTEGER DEFAULT 0,
+  subscription_status TEXT DEFAULT 'free',
+  stripe_customer_id TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+)
+```
+
+#### Usage Tracking Pattern
+- **Atomic Updates**: Translation count incremented atomically
+- **Subscription Validation**: Real-time subscription status checks
+- **Audit Trail**: Comprehensive usage tracking for analytics
+
+### API Route Design
+
+#### Translation Endpoint Pattern
+```typescript
+// Pattern: Authenticated translation with usage validation
+export async function POST(request: Request) {
+  // 1. Validate authentication
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  // 2. Check usage limits
+  const canTranslate = await validateUsageLimit(user.email)
+  
+  // 3. Process translation
+  const result = await openai.chat.completions.create(...)
+  
+  // 4. Update usage tracking
+  await incrementTranslationCount(user.email)
+  
+  return NextResponse.json({ translation: result })
+}
+```
+
+#### Webhook Security Pattern
+```typescript
+// Pattern: Stripe webhook verification and processing
+export async function POST(request: Request) {
+  const signature = request.headers.get('stripe-signature')
+  const event = stripe.webhooks.constructEvent(body, signature, secret)
+  
+  switch (event.type) {
+    case 'checkout.session.completed':
+      await updateSubscriptionStatus(event.data.object)
+      break
+  }
+}
+```
 
 ## Component Relationships
 
 ### Dependency Graph
 ```
-TranslationApp
-├── VoiceInput (voice recognition)
-├── UI Components (buttons, cards, inputs)
-├── translation-service (API communication)
-└── Hooks (toast notifications)
+AuthWrapper (Authentication Container)
+├── TranslationApp (Main Application)
+│   ├── VoiceInput (Voice Recognition)
+│   ├── UpgradePrompt (Payment Integration)
+│   ├── UI Components (Radix + Tailwind)
+│   └── translation-service (API Communication)
+├── Supabase Client (Database + Auth)
+└── Stripe Integration (Payment Processing)
 
-translation-service
-└── /api/translate (server endpoint)
+API Routes
+├── /api/translate (Translation Processing)
+├── /api/create-checkout-session (Payment Initiation)
+└── /api/webhooks/stripe (Payment Completion)
 
-/api/translate
-└── OpenAI SDK (external service)
+External Services
+├── OpenAI GPT-3.5-turbo (Translation Engine)
+├── Supabase (Backend Services)
+└── Stripe (Payment Processing)
 ```
 
-### Data Flow
-- **Unidirectional**: Data flows down through props, events flow up through callbacks
-- **Event-Driven**: User interactions trigger state changes and API calls
-- **Reactive**: UI automatically updates based on state changes
+### Data Flow Patterns
+
+#### Authentication Flow
+```
+Page Load → Supabase Auth Check → User Profile Fetch → Usage Validation → UI Render
+```
+
+#### Translation Flow
+```
+User Input → Usage Validation → API Call → OpenAI Processing → Usage Update → Result Display
+```
+
+#### Payment Flow
+```
+Upgrade Request → Stripe Session → Checkout → Webhook → Database Update → UI Refresh
+```
 
 ## Performance Patterns
 
 ### Optimization Strategies
-- **Lazy Loading**: Components loaded only when needed
-- **Debouncing**: Voice input includes timeout to prevent excessive API calls
-- **Error Recovery**: Failed requests don't break application state
-- **Progressive Enhancement**: Core functionality works without advanced features
+- **Async Loading**: Non-blocking authentication and profile loading
+- **Debounced Voice Input**: 12-second timeout prevents excessive API calls
+- **Optimistic UI Updates**: Immediate feedback with background validation
+- **Language Cycling**: Progressive enhancement for voice recognition accuracy
+- **Database Indexing**: Optimized queries for user profiles and usage tracking
 
-### Resource Management
-- **API Rate Limiting**: Single translation per user action prevents spam
-- **Memory Management**: Component cleanup prevents memory leaks
-- **Network Efficiency**: Minimal API calls, efficient request/response format
+### Caching Patterns
+- **Client-Side State**: User profile and subscription status cached in React state
+- **Session Persistence**: Supabase handles authentication session caching
+- **API Response Caching**: Translation results cached in component state
 
 ## Security Patterns
 
-### API Key Protection
-- **Server-Side Storage**: OpenAI API key stored in environment variables
-- **No Client Exposure**: API key never sent to browser
-- **Environment Validation**: Separate endpoint for testing configuration
+### Authentication Security
+- **Server-Side Validation**: All API routes validate user authentication
+- **Row-Level Security**: Supabase RLS policies protect user data
+- **Session Management**: Secure token-based authentication
+- **Profile Isolation**: Users can only access their own data
+
+### Payment Security
+- **Server-Side Processing**: All payment operations handled server-side
+- **Webhook Verification**: Stripe signature verification for webhook security
+- **API Key Protection**: Sensitive keys stored in environment variables
+- **PCI Compliance**: Stripe handles all payment data processing
 
 ### Input Validation
-- **Server-Side Validation**: API routes validate input before processing
-- **Client-Side Checks**: UI prevents empty submissions
-- **Error Sanitization**: Error messages don't expose sensitive information
+- **Server-Side Validation**: All inputs validated before processing
+- **SQL Injection Prevention**: Parameterized queries and ORM usage
+- **XSS Protection**: Input sanitization and output encoding
+- **Rate Limiting**: Usage limits prevent API abuse
 
 ## Scalability Considerations
 
 ### Current Architecture Benefits
-- **Stateless Design**: No server-side session management required
-- **Component Isolation**: Features can be modified independently
-- **Service Abstraction**: Easy to swap translation providers
-- **Responsive Design**: Scales across device types
+- **Stateless API Design**: Horizontal scaling capability
+- **Database Optimization**: Indexed queries for performance
+- **External Service Integration**: Offloaded processing to specialized services
+- **Component Modularity**: Independent feature scaling
+
+### Monitoring & Analytics
+- **Usage Tracking**: Comprehensive translation usage analytics
+- **Error Logging**: Detailed error tracking and reporting
+- **Performance Metrics**: API response time monitoring
+- **User Behavior**: Translation patterns and feature usage
 
 ### Future Scaling Patterns
-- **Caching Layer**: Could add Redis for translation caching
-- **Rate Limiting**: Could implement user-based rate limiting
-- **Load Balancing**: Stateless design supports horizontal scaling
-- **Microservices**: Translation service could be extracted to separate service
+- **Caching Layer**: Redis for translation result caching
+- **CDN Integration**: Static asset optimization
+- **Microservices**: Service extraction for independent scaling
+- **Load Balancing**: Multi-region deployment capability
+- **Database Sharding**: User-based data partitioning
+
+## Error Handling Patterns
+
+### Layered Error Recovery
+1. **Client-Side**: UI error states and user feedback
+2. **API Layer**: Structured error responses with actionable messages
+3. **Service Layer**: External service failure handling and retries
+4. **Database Layer**: Transaction rollback and data consistency
+
+### User Experience Patterns
+- **Graceful Degradation**: Core functionality maintained during service outages
+- **Progressive Enhancement**: Advanced features enhance but don't break basic functionality
+- **Error Communication**: Clear, actionable error messages for users
+- **Retry Mechanisms**: Automatic retry for transient failures

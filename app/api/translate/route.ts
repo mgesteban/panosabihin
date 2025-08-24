@@ -27,22 +27,22 @@ export async function POST(request: NextRequest) {
 
     console.log("Translating text:", text)
 
-    // Use OpenAI's chat completions API for translation
+    // Use OpenAI's chat completions API for translation with GPT-4 for superior quality
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
           content:
-            "You are AiPolyglot, a helpful translation assistant. Provide accurate, natural-sounding English translations. Only return the translated text without any additional explanations or notes.",
+            "You are AiPolyglot, a professional translation assistant. Provide highly accurate, natural-sounding English translations that preserve the original meaning, tone, and cultural context. Pay special attention to idiomatic expressions, cultural nuances, and proper names. Only return the translated text without any additional explanations or notes.",
         },
         {
           role: "user",
           content: `Translate the following text to English: "${text}"`,
         },
       ],
-      temperature: 0.3,
-      max_tokens: 1000,
+      temperature: 0.2,
+      max_tokens: 1500,
     })
 
     // Extract the translated text from the response
