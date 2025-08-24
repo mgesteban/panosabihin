@@ -64,7 +64,7 @@ export default function UpgradePrompt({ userEmail, onUpgrade }: UpgradePromptPro
           </div>
           <CardTitle className="text-xl">Upgrade to Unlimited</CardTitle>
           <CardDescription>
-            You've used all 5 free translations. Upgrade now for unlimited access!
+            You've used all 100 free translations. Upgrade now for unlimited access!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

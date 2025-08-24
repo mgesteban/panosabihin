@@ -155,14 +155,14 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   // Check if user can translate (hasn't exceeded free limit)
   const canTranslate = () => {
     if (!userProfile) return false
-    return userProfile.has_paid || userProfile.translation_count < 5
+    return userProfile.has_paid || userProfile.translation_count < 100
   }
 
   // Get remaining free translations
   const getRemainingTranslations = () => {
     if (!userProfile) return 0
     if (userProfile.has_paid) return Infinity
-    return Math.max(0, 5 - userProfile.translation_count)
+    return Math.max(0, 100 - userProfile.translation_count)
   }
 
   // Loading state

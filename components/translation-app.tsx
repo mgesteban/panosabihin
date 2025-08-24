@@ -46,7 +46,7 @@ export default function TranslationApp({
     if (!canTranslate) {
       toast({
         title: "Translation Limit Reached",
-        description: "You've used all 5 free translations. Please upgrade to continue.",
+        description: "You've used all 100 free translations. Please upgrade to continue.",
         variant: "destructive",
       })
       return
@@ -78,12 +78,12 @@ export default function TranslationApp({
         }
       }
 
-      // Show payment prompt if this was the 5th translation
-      if (userProfile && !userProfile.has_paid && userProfile.translation_count + 1 >= 5) {
+      // Show payment prompt if this was the 100th translation
+      if (userProfile && !userProfile.has_paid && userProfile.translation_count + 1 >= 100) {
         setTimeout(() => {
           toast({
             title: "Free Translations Used",
-            description: "You've used all 5 free translations. Upgrade for unlimited access!",
+            description: "You've used all 100 free translations. Upgrade for unlimited access!",
             variant: "default",
           })
         }, 2000)
