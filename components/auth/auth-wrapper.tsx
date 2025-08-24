@@ -34,7 +34,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
       setUser(session?.user ?? null)
       
       if (session?.user) {
-        await fetchUserProfile(session.user.id)
+        await fetchUserProfile(session.user.id, session.user.email)
       }
       
       setIsLoading(false)
@@ -48,7 +48,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
         setUser(session?.user ?? null)
         
         if (session?.user) {
-          await fetchUserProfile(session.user.id)
+          await fetchUserProfile(session.user.id, session.user.email)
         } else {
           setUserProfile(null)
         }
@@ -61,7 +61,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   }, [])
 
   // Fetch or create user profile
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, userEmail?: string) => {
     try {
       // First, try to get existing profile
       const { data: profile, error: fetchError } = await supabase
@@ -72,11 +72,14 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
       if (fetchError && fetchError.code === 'PGRST116') {
         // Profile doesn't exist, create it
+        // Get current user data if email not provided
+        const email = userEmail || user?.email || ''
+        
         const { data: newProfile, error: createError } = await supabase
           .from('user_profiles')
           .insert({
             id: userId,
-            email: user?.email || '',
+            email: email,
             translation_count: 0,
             has_paid: false
           })
