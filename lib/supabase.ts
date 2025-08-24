@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import { createBrowserClient, createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 
 // Environment variables validation
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -15,8 +14,9 @@ export const createSupabaseClient = () => {
   return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
-// Server-side Supabase client
-export const createSupabaseServerClient = () => {
+// Server-side Supabase client - only import cookies when needed
+export const createSupabaseServerClient = async () => {
+  const { cookies } = await import('next/headers')
   const cookieStore = cookies()
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
