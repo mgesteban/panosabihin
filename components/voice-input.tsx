@@ -20,22 +20,19 @@ export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputPro
     if (typeof window !== "undefined") {
       try {
         // Try to access the SpeechRecognition API
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
         if (!SpeechRecognition) {
-          console.log("SpeechRecognition not supported")
+          console.log("SpeechRecognition not supported in this browser")
           setIsSupported(false)
           return
         }
-
-        // Create a test instance to verify it works
-        const testRecognition = new SpeechRecognition()
 
         // Set up the recognition instance
         recognitionRef.current = new SpeechRecognition()
         recognitionRef.current.continuous = false
         recognitionRef.current.interimResults = false
-        recognitionRef.current.lang = "auto" // Auto-detect language
+        recognitionRef.current.lang = "en-US" // Set to English, but will detect other languages
 
         recognitionRef.current.onresult = (event: any) => {
           if (event.results && event.results[0]) {
@@ -48,11 +45,35 @@ export default function VoiceInput({ onTranscript, isProcessing }: VoiceInputPro
         recognitionRef.current.onerror = (event: any) => {
           console.log("Speech recognition error:", event.error)
 
+          let errorMessage = "Voice input error occurred."
+          
+          switch (event.error) {
+            case "not-allowed":
+              errorMessage = "Microphone access denied. Please allow microphone permissions and try again."
+              break
+            case "no-speech":
+              errorMessage = "No speech detected. Please try again."
+              break
+            case "audio-capture":
+              errorMessage = "No microphone found. Please check your microphone connection."
+              break
+            case "network":
+              errorMessage = "Network error occurred. Please check your internet connection."
+              break
+            case "service-not-allowed":
+              errorMessage = "Speech recognition service not allowed. Please try using HTTPS."
+              break
+            default:
+              if (event.error !== "aborted") {
+                errorMessage = "Could not access microphone. Please check your browser permissions."
+              }
+          }
+
           // Only show errors that aren't from normal stopping
-          if (event.error !== "aborted" && event.error !== "no-speech") {
+          if (event.error !== "aborted") {
             toast({
               title: "Voice Input Error",
-              description: "Could not access microphone. Please check your browser permissions.",
+              description: errorMessage,
               variant: "destructive",
             })
           }
