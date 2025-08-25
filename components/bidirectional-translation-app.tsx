@@ -208,8 +208,8 @@ export default function BidirectionalTranslationApp({
       <div className="flex flex-col items-center mb-6">
         <div className="relative w-[120px] h-[120px] sm:w-[150px] sm:h-[150px]">
           <Image
-            src="/images/aipolyglot-logo.png"
-            alt="AiPolyglot - Bidirectional Translation Assistant"
+            src="/images/panosabihinlogo.png"
+            alt="Panosabihin - Universal Translation Assistant"
             fill
             sizes="(max-width: 640px) 120px, 150px"
             priority

@@ -177,11 +177,17 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     )
   }
 
-  // Not authenticated - show auth form
+  // Not authenticated - show landing page with limited functionality
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <AuthForm onSuccess={handleAuthSuccess} />
+      <div className="min-h-screen">
+        {React.cloneElement(children as React.ReactElement, {
+          user: null,
+          userProfile: null,
+          updateUserProfile: undefined,
+          canTranslate: true, // Allow free translations for unauthenticated users
+          remainingTranslations: 100,
+        })}
       </div>
     )
   }

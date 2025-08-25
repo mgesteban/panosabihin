@@ -1,10 +1,13 @@
-import BidirectionalTranslationApp from "@/components/bidirectional-translation-app"
+import { Suspense } from "react"
+import LandingPage from "@/components/landing-page"
 import AuthWrapper from "@/components/auth/auth-wrapper"
 
 export default function Home() {
   return (
-    <AuthWrapper>
-      <BidirectionalTranslationApp />
-    </AuthWrapper>
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthWrapper>
+        <LandingPage />
+      </AuthWrapper>
+    </Suspense>
   )
 }
