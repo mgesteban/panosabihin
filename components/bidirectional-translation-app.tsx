@@ -7,11 +7,78 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Send, Loader2, AlertCircle, ArrowUpDown, Languages, Mic, Type } from "lucide-react"
 import Image from "next/image"
 import { toast } from "@/hooks/use-toast"
 import { User } from "@supabase/supabase-js"
 import UpgradePrompt from "./payment/upgrade-prompt"
+
+// Supported languages list
+const SUPPORTED_LANGUAGES = [
+  { code: "Filipino/Tagalog", label: "Filipino/Tagalog", flag: "🇵🇭" },
+  { code: "Spanish", label: "Spanish", flag: "🇪🇸" },
+  { code: "French", label: "French", flag: "🇫🇷" },
+  { code: "German", label: "German", flag: "🇩🇪" },
+  { code: "Italian", label: "Italian", flag: "🇮🇹" },
+  { code: "Portuguese", label: "Portuguese", flag: "🇵🇹" },
+  { code: "Russian", label: "Russian", flag: "🇷🇺" },
+  { code: "Chinese", label: "Chinese (Simplified)", flag: "🇨🇳" },
+  { code: "Japanese", label: "Japanese", flag: "🇯🇵" },
+  { code: "Korean", label: "Korean", flag: "🇰🇷" },
+  { code: "Arabic", label: "Arabic", flag: "🇸🇦" },
+  { code: "Hindi", label: "Hindi", flag: "🇮🇳" },
+  { code: "Turkish", label: "Turkish", flag: "🇹🇷" },
+  { code: "Polish", label: "Polish", flag: "🇵🇱" },
+  { code: "Dutch", label: "Dutch", flag: "🇳🇱" },
+  { code: "Swedish", label: "Swedish", flag: "🇸🇪" },
+  { code: "Danish", label: "Danish", flag: "🇩🇰" },
+  { code: "Norwegian", label: "Norwegian", flag: "🇳🇴" },
+  { code: "Finnish", label: "Finnish", flag: "🇫🇮" },
+  { code: "Greek", label: "Greek", flag: "🇬🇷" },
+  { code: "Hebrew", label: "Hebrew", flag: "🇮🇱" },
+  { code: "Thai", label: "Thai", flag: "🇹🇭" },
+  { code: "Vietnamese", label: "Vietnamese", flag: "🇻🇳" },
+  { code: "Indonesian", label: "Indonesian", flag: "🇮🇩" },
+  { code: "Malay", label: "Malay", flag: "🇲🇾" },
+  { code: "Ukrainian", label: "Ukrainian", flag: "🇺🇦" },
+  { code: "Czech", label: "Czech", flag: "🇨🇿" },
+  { code: "Romanian", label: "Romanian", flag: "🇷🇴" },
+  { code: "Hungarian", label: "Hungarian", flag: "🇭🇺" },
+  { code: "Bulgarian", label: "Bulgarian", flag: "🇧🇬" },
+  { code: "Croatian", label: "Croatian", flag: "🇭🇷" },
+  { code: "Slovak", label: "Slovak", flag: "🇸🇰" },
+  { code: "Slovenian", label: "Slovenian", flag: "🇸🇮" },
+  { code: "Lithuanian", label: "Lithuanian", flag: "🇱🇹" },
+  { code: "Latvian", label: "Latvian", flag: "🇱🇻" },
+  { code: "Estonian", label: "Estonian", flag: "🇪🇪" },
+  { code: "Persian", label: "Persian/Farsi", flag: "🇮🇷" },
+  { code: "Urdu", label: "Urdu", flag: "🇵🇰" },
+  { code: "Bengali", label: "Bengali", flag: "🇧🇩" },
+  { code: "Tamil", label: "Tamil", flag: "🇮🇳" },
+  { code: "Telugu", label: "Telugu", flag: "🇮🇳" },
+  { code: "Marathi", label: "Marathi", flag: "🇮🇳" },
+  { code: "Gujarati", label: "Gujarati", flag: "🇮🇳" },
+  { code: "Kannada", label: "Kannada", flag: "🇮🇳" },
+  { code: "Swahili", label: "Swahili", flag: "🇰🇪" },
+  { code: "Afrikaans", label: "Afrikaans", flag: "🇿🇦" },
+  { code: "Albanian", label: "Albanian", flag: "🇦🇱" },
+  { code: "Armenian", label: "Armenian", flag: "🇦🇲" },
+  { code: "Azerbaijani", label: "Azerbaijani", flag: "🇦🇿" },
+  { code: "Basque", label: "Basque", flag: "🇪🇸" },
+  { code: "Belarusian", label: "Belarusian", flag: "🇧🇾" },
+  { code: "Bosnian", label: "Bosnian", flag: "🇧🇦" },
+  { code: "Catalan", label: "Catalan", flag: "🇪🇸" },
+  { code: "Georgian", label: "Georgian", flag: "🇬🇪" },
+  { code: "Icelandic", label: "Icelandic", flag: "🇮🇸" },
+  { code: "Irish", label: "Irish", flag: "🇮🇪" },
+  { code: "Kazakh", label: "Kazakh", flag: "🇰🇿" },
+  { code: "Macedonian", label: "Macedonian", flag: "🇲🇰" },
+  { code: "Maltese", label: "Maltese", flag: "🇲🇹" },
+  { code: "Mongolian", label: "Mongolian", flag: "🇲🇳" },
+  { code: "Serbian", label: "Serbian", flag: "🇷🇸" },
+  { code: "Welsh", label: "Welsh", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" }
+]
 
 interface UserProfile {
   id: string
@@ -39,18 +106,19 @@ export default function BidirectionalTranslationApp({
   const [translatedText, setTranslatedText] = useState("")
   const [isTranslating, setIsTranslating] = useState(false)
   const [error, setError] = useState("")
-  const [nativeLanguage, setNativeLanguage] = useState("Filipino/Tagalog")
+  const [nativeLanguage, setNativeLanguage] = useState(() => {
+    const savedLanguage = localStorage.getItem('aipolyglot-native-language')
+    return savedLanguage || "Spanish"
+  })
   const [translationDirection, setTranslationDirection] = useState<'auto' | 'to-english' | 'to-native'>('auto')
   const [lastTranslationDirection, setLastTranslationDirection] = useState<'english-to-native' | 'native-to-english' | null>(null)
   const [conversationMode, setConversationMode] = useState(false)
 
-  // Auto-detect native language from first translation
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('aipolyglot-native-language')
-    if (savedLanguage) {
-      setNativeLanguage(savedLanguage)
-    }
-  }, [])
+  // Helper function to detect RTL languages
+  const isRTL = (language: string) => {
+    const rtlLanguages = ['Arabic', 'Hebrew', 'Persian', 'Urdu']
+    return rtlLanguages.includes(language)
+  }
 
   const handleTranslate = async () => {
     if (!inputText.trim()) return
@@ -174,13 +242,14 @@ export default function BidirectionalTranslationApp({
   }
 
   const getDirectionLabel = () => {
+    const shortName = nativeLanguage.split('/')[0]
     switch (translationDirection) {
       case 'auto':
         return 'Auto-detect'
       case 'to-english':
-        return `${nativeLanguage} → English`
+        return `${shortName} → English`
       case 'to-native':
-        return `English → ${nativeLanguage}`
+        return `English → ${shortName}`
       default:
         return 'Auto-detect'
     }
@@ -217,9 +286,79 @@ export default function BidirectionalTranslationApp({
           />
         </div>
         <p className="text-sm text-center text-muted-foreground mt-2">
-          Speak or type in any language. Perfect for ESL conversations.
+          Speak or type in {SUPPORTED_LANGUAGES.length}+ languages. Perfect for multilingual conversations.
         </p>
       </div>
+
+      {/* Language Selection Card */}
+      <Card className="mb-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Languages className="h-4 w-4" />
+            Select Your Native Language
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={nativeLanguage}
+            onValueChange={(value) => {
+              setNativeLanguage(value)
+              localStorage.setItem('aipolyglot-native-language', value)
+              toast({
+                title: "Language Updated",
+                description: `Your native language is now set to ${value}`,
+              })
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a language" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <SelectItem key={lang.code} value={lang.code}>
+                  <span className="flex items-center gap-2">
+                    <span>{lang.flag}</span>
+                    <span>{lang.label}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-2">
+            This will be used as your primary translation language
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Quick Language Selection */}
+      <Card className="mb-4">
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Quick Select:</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {SUPPORTED_LANGUAGES.slice(0, 8).map((lang) => (
+              <Button
+                key={lang.code}
+                variant={nativeLanguage === lang.code ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setNativeLanguage(lang.code)
+                  localStorage.setItem('aipolyglot-native-language', lang.code)
+                  toast({
+                    title: "Language Updated",
+                    description: `Native language set to ${lang.label}`,
+                  })
+                }}
+                className="text-xs p-2"
+                title={lang.label}
+              >
+                {lang.flag}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Conversation Mode Toggle */}
       <Card className="mb-4">
@@ -278,7 +417,7 @@ export default function BidirectionalTranslationApp({
                 onClick={() => setTranslationDirection('to-native')}
                 className="flex-1"
               >
-                → {nativeLanguage.split('/')[0]}
+                → {nativeLanguage.split('/')[0].substring(0, 3).toUpperCase()}
               </Button>
             </div>
           </CardContent>
@@ -301,7 +440,8 @@ export default function BidirectionalTranslationApp({
                 : "Type or speak your text..."}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="min-h-[100px] resize-none text-base"
+              className={`min-h-[100px] resize-none text-base ${isRTL(nativeLanguage) ? 'text-right' : ''}`}
+              dir={isRTL(nativeLanguage) ? 'rtl' : 'ltr'}
               aria-label="Text to translate"
             />
 
@@ -324,7 +464,11 @@ export default function BidirectionalTranslationApp({
                 )}
               </Button>
 
-              <VoiceInput onTranscript={handleVoiceInput} isProcessing={isTranslating} />
+              <VoiceInput 
+                onTranscript={handleVoiceInput} 
+                isProcessing={isTranslating}
+                language={nativeLanguage}
+              />
             </div>
           </div>
         </CardContent>
@@ -352,7 +496,12 @@ export default function BidirectionalTranslationApp({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="p-3 bg-muted rounded-md text-base">{translatedText}</div>
+            <div 
+              className={`p-3 bg-muted rounded-md text-base ${isRTL(nativeLanguage) && lastTranslationDirection === 'english-to-native' ? 'text-right' : ''}`}
+              dir={isRTL(nativeLanguage) && lastTranslationDirection === 'english-to-native' ? 'rtl' : 'ltr'}
+            >
+              {translatedText}
+            </div>
           </CardContent>
         </Card>
       )}
