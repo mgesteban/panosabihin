@@ -77,8 +77,7 @@ const SUPPORTED_LANGUAGES = [
   { code: "Maltese", label: "Maltese", flag: "🇲🇹" },
   { code: "Mongolian", label: "Mongolian", flag: "🇲🇳" },
   { code: "Serbian", label: "Serbian", flag: "🇷🇸" },
-  { code: "Welsh", label: "Welsh", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" }
-]
+  ]
 
 interface UserProfile {
   id: string
