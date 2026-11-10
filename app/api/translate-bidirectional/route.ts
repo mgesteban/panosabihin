@@ -6,6 +6,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+// gpt-4 was retired by OpenAI; override with OPENAI_MODEL if this one is retired too
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o"
+
 export async function POST(request: NextRequest) {
   try {
     console.log("Bidirectional Translation API route called")
@@ -58,7 +61,7 @@ Return ONLY the translated text without any additional explanations, notes, or l
 
     // Use OpenAI's chat completions API for translation with GPT-4 for superior quality
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: OPENAI_MODEL,
       messages: [
         {
           role: "system",
@@ -84,7 +87,7 @@ Return ONLY the translated text without any additional explanations, notes, or l
 
     // Detect the direction of translation for response
     const detectionResponse = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: OPENAI_MODEL,
       messages: [
         {
           role: "system",
@@ -113,6 +116,14 @@ Return ONLY the translated text without any additional explanations, notes, or l
     console.error("Bidirectional Translation API error:", error)
 
     // Return an appropriate error response
+    // Surface OpenAI's error code (e.g. model_not_found, insufficient_quota) so outages are easy to diagnose
+    if (error instanceof OpenAI.APIError) {
+      console.error(`OpenAI error ${error.status} (${error.code}): ${error.message}`)
+      return NextResponse.json(
+        { error: "Translation failed. Please try again.", code: error.code },
+        { status: error.status && error.status >= 400 ? error.status : 500 },
+      )
+    }
     return NextResponse.json({ error: "Translation failed. Please try again." }, { status: 500 })
   }
 }

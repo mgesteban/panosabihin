@@ -6,6 +6,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+// gpt-4 was retired by OpenAI; override with OPENAI_MODEL if this one is retired too
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o"
+
 export async function POST(request: NextRequest) {
   try {
     // Log that we're starting the translation process
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Use OpenAI's chat completions API for translation with GPT-4 for superior quality
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: OPENAI_MODEL,
       messages: [
         {
           role: "system",
@@ -61,6 +64,14 @@ export async function POST(request: NextRequest) {
     console.error("Translation API error:", error)
 
     // Return an appropriate error response
+    // Surface OpenAI's error code (e.g. model_not_found, insufficient_quota) so outages are easy to diagnose
+    if (error instanceof OpenAI.APIError) {
+      console.error(`OpenAI error ${error.status} (${error.code}): ${error.message}`)
+      return NextResponse.json(
+        { error: "Translation failed. Please try again.", code: error.code },
+        { status: error.status && error.status >= 400 ? error.status : 500 },
+      )
+    }
     return NextResponse.json({ error: "Translation failed. Please try again." }, { status: 500 })
   }
 }
