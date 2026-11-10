@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
+import { logTranslation } from "@/lib/usage-log"
 
 // Initialize the OpenAI client with the API key from environment variables
 const openai = new OpenAI({
@@ -104,6 +105,8 @@ Return ONLY the translated text without any additional explanations, notes, or l
 
     const detectedLanguage = detectionResponse.choices[0]?.message?.content?.trim().toLowerCase()
     const translationDirection = detectedLanguage === 'english' ? 'english-to-native' : 'native-to-english'
+
+    await logTranslation("translate-bidirectional", OPENAI_MODEL, [response.usage, detectionResponse.usage])
 
     // Return the translated text with metadata
     return NextResponse.json({ 

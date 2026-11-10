@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
+import { logTranslation } from "@/lib/usage-log"
 
 // Initialize the OpenAI client with the API key from environment variables
 const openai = new OpenAI({
@@ -56,6 +57,8 @@ export async function POST(request: NextRequest) {
     if (!translatedText) {
       throw new Error("No translation returned from OpenAI")
     }
+
+    await logTranslation("translate", OPENAI_MODEL, [response.usage])
 
     // Return the translated text
     return NextResponse.json({ translatedText })

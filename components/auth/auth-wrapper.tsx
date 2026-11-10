@@ -7,6 +7,7 @@ import AuthForm from "./auth-form"
 import { Button } from "@/components/ui/button"
 import { LogOut, User as UserIcon } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { useUsageSession } from "@/hooks/use-usage-session"
 
 interface AuthWrapperProps {
   children: React.ReactNode
@@ -26,6 +27,9 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   const [isAuthenticating, setIsAuthenticating] = useState(false)
 
   const supabase = createSupabaseClient()
+
+  // Track time in app for the scoreboard (waits until we know who is signed in)
+  useUsageSession(isLoading ? undefined : user?.id ?? null)
 
   // Check initial session and set up auth listener
   useEffect(() => {
