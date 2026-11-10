@@ -1,5 +1,15 @@
 # Progress: AiPolyglot Translation App
 
+## 2026-11-10
+- ✅ **Translation restored:** replaced the retired `gpt-4` model with `gpt-4o` (override with `OPENAI_MODEL`). Errors now show OpenAI's error code.
+- ✅ **Daily scoreboard email built and merged to master:**
+  - visit and time-in-app tracking
+  - per-translation token logging
+  - daily Vercel cron that emails the report via Resend
+- ⏳ **Scoreboard setup pending** (planned for this weekend): Supabase SQL, Resend account, Vercel env vars. See `SCOREBOARD_SETUP.md` and the "Next steps" section in `activeContext.md`.
+- Note: older sections below still describe the app as using GPT-4. It now uses `gpt-4o`.
+
+
 ## What Works: ENHANCED PRODUCTION READY ✅
 
 ### Core Functionality - REVOLUTIONIZED ✅

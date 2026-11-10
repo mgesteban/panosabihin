@@ -1,5 +1,34 @@
 # Active Context: AiPolyglot Translation App
 
+## Latest Update (2026-11-10)
+
+### Fixed: translation outage
+- **Cause:** OpenAI retired `gpt-4`, so every translate request failed with `model_not_found`. The API key and billing were fine.
+- **Fix (commit `09ae6f1`):** both translate routes now use `gpt-4o`. Set `OPENAI_MODEL` to switch models without changing code. Error responses now include OpenAI's error `code` (e.g. `model_not_found`, `insufficient_quota`) so the cause is visible right away.
+- Confirmed working on the live site.
+
+### Added: daily scoreboard email (commit `b67dc62`, on master)
+- A Vercel cron (`vercel.json`) calls `/api/scoreboard` daily at 7am Pacific. It emails the previous day's numbers via Resend:
+  - visitors, active users, and translations
+  - time in app
+  - member stats
+  - OpenAI tokens and cost
+- Tracking pieces: `hooks/use-usage-session.ts` (visit heartbeat, used in `auth-wrapper.tsx`), `lib/usage-log.ts` (per-translation token log), `lib/scoreboard.ts` (report and email), `supabase/scoreboard.sql` (tables and functions).
+- **Status: code deployed, setup NOT done yet.** Tracking stays off and no email is sent until setup is finished.
+
+### Next steps (planned for this weekend)
+Full instructions are in `SCOREBOARD_SETUP.md`.
+1. Run `supabase/scoreboard.sql` in the Supabase SQL Editor.
+2. Sign up at resend.com with the address that should receive the report, and create an API key.
+3. Add these Vercel env vars:
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `RESEND_API_KEY`
+   - `SCOREBOARD_EMAIL_TO`
+   - `CRON_SECRET`
+   - optional: `OPENAI_ADMIN_KEY` for exact OpenAI cost instead of an estimate
+4. Redeploy, then check `/api/scoreboard?preview=1` with the `CRON_SECRET` header before the first 7am send.
+
+
 ## Current Work Focus
 The AiPolyglot translation application has been **revolutionized with bidirectional translation capabilities** and upgraded to GPT-4 for superior translation quality. The app now serves as a comprehensive ESL conversation assistant with automatic language detection and direction switching.
 
